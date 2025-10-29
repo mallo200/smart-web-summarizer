@@ -143,6 +143,41 @@ export default function Home() {
     }
   }
 
+  function formatSummaryForExport(summary: { title: string; bullets: string[] }, url?: string): string {
+    const lines: string[] = [];
+    lines.push(summary.title);
+    lines.push("");
+    if (url) {
+      lines.push(`URL: ${url}`);
+      lines.push("");
+    }
+    lines.push("Points clés:");
+    summary.bullets.forEach((bullet, index) => {
+      lines.push(`${index + 1}. ${bullet}`);
+    });
+    return lines.join("\n");
+  }
+
+  function exportSummaryToTxt(summary: { title: string; bullets: string[] }, url?: string): void {
+    const content = formatSummaryForExport(summary, url);
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const filename = summary.title
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase()
+      .slice(0, 50) || "resume";
+    const urlObj = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = urlObj;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(urlObj);
+    setToast("Résumé exporté");
+    setTimeout(() => setToast(null), 2000);
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col gap-10 py-16 px-6 sm:px-10 bg-white dark:bg-black">
@@ -276,8 +311,8 @@ export default function Home() {
                   <li key={idx} className="line-clamp-2">{point}</li>
                 ))}
               </ul>
-              {latestSummary.bullets.length > 3 && (
-                <div className="mt-3 flex items-center gap-3">
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                {latestSummary.bullets.length > 3 && (
                   <button
                     type="button"
                     className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
@@ -285,20 +320,27 @@ export default function Home() {
                   >
                     {isExpanded ? "Afficher moins" : "Afficher plus"}
                   </button>
-                  <button
-                    type="button"
-                    className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
-                    onClick={async () => {
-                      const text = [latestSummary.title, ...(latestSummary.bullets)].join("\n- ");
-                      const ok = await copyToClipboard(text);
-                      setToast(ok ? "Résumé copié" : "Impossible de copier");
-                      setTimeout(() => setToast(null), 2000);
-                    }}
-                  >
-                    Copier tout
-                  </button>
-                </div>
-              )}
+                )}
+                <button
+                  type="button"
+                  className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
+                  onClick={async () => {
+                    const text = [latestSummary.title, ...(latestSummary.bullets)].join("\n- ");
+                    const ok = await copyToClipboard(text);
+                    setToast(ok ? "Résumé copié" : "Impossible de copier");
+                    setTimeout(() => setToast(null), 2000);
+                  }}
+                >
+                  Copier tout
+                </button>
+                <button
+                  type="button"
+                  className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
+                  onClick={() => exportSummaryToTxt(latestSummary, url)}
+                >
+                  Exporter en TXT
+                </button>
+              </div>
             </article>
           ) : (
             <p className="text-zinc-600 dark:text-zinc-400">Aucun résumé généré pour l’instant.</p>
@@ -338,7 +380,7 @@ export default function Home() {
                       ))}
                     </ul>
                   </a>
-                  <div className="mt-3 flex items-center gap-3">
+                  <div className="mt-3 flex items-center gap-3 flex-wrap">
                     <button
                       type="button"
                       className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
@@ -351,8 +393,15 @@ export default function Home() {
                     >
                       Copier le résumé
                     </button>
+                    <button
+                      type="button"
+                      className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white"
+                      onClick={() => exportSummaryToTxt({ title: s.title, bullets: Array.isArray(s.bullets) ? s.bullets : [] }, s.url)}
+                    >
+                      Exporter en TXT
+                    </button>
                     <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-sm underline text-zinc-700 hover:text-black dark:text-zinc-300 dark:hover:text-white">
-                      Ouvrir l’article
+                      Ouvrir l'article
                     </a>
                     <button
                       type="button"
